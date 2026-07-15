@@ -1,5 +1,5 @@
 // Minimal offline cache for the app shell. CDN libs + Google Maps are network-first (fall through).
-const CACHE = 'route-pwa-v4';
+const CACHE = 'route-pwa-v5';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './db.js', './fuzzy.js', './geo.js',
   './xlsxio.js', './manifest.webmanifest', './icon-192.png', './icon-512.png',

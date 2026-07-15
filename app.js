@@ -430,19 +430,42 @@ function viewScan() {
 
 async function startScan() {
   const st = scanState;
+  // getUserMedia only exists in a secure context (https:// or localhost). This is the #1 reason a
+  // camera "does nothing" on a self-hosted PWA — surface it clearly instead of a generic error.
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    st.status.textContent = location.protocol === 'https:'
+      ? 'This browser has no camera API.'
+      : `Camera needs a secure site — open Route over https:// (currently ${location.protocol}//).`;
+    return;
+  }
   try {
     st.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
     st.video.srcObject = st.stream;
     await st.video.play().catch(() => {});
   } catch (e) {
-    st.status.textContent = 'Camera blocked — allow camera access for this site, then reopen Scan.';
+    const n = e && e.name;
+    st.status.textContent =
+      n === 'NotAllowedError' ? 'Camera blocked — allow camera access for this site, then reopen Scan.'
+      : n === 'NotFoundError' ? 'No camera found on this device.'
+      : 'Camera error: ' + (e.message || n || e);
     return;
   }
-  if (typeof Tesseract === 'undefined') { st.status.textContent = 'Scanner library didn’t load — check your connection.'; return; }
+  if (typeof Tesseract === 'undefined') {
+    st.status.textContent = 'Scanner library didn’t load — check your connection, then reopen Scan.';
+    return;
+  }
   st.status.textContent = 'Loading scanner…';
   try {
-    // ONE persistent worker, reused for every frame (the old code spun up a new one per frame).
-    st.worker = await Tesseract.createWorker('eng');
+    // ONE persistent worker, reused for every frame. The logger surfaces the (large) language-data
+    // download progress so a slow load reads as "Loading… 40%" instead of a frozen screen.
+    st.worker = await Tesseract.createWorker('eng', 1, {
+      logger: (m) => {
+        if (!st.alive || !m || !m.status) return;
+        if (m.status.indexOf('recogniz') !== -1) return; // per-frame noise once running
+        const pct = m.progress != null ? ' ' + Math.round(m.progress * 100) + '%' : '';
+        st.status.textContent = 'Loading scanner… ' + m.status + pct;
+      },
+    });
   } catch (e) { st.status.textContent = 'Scanner failed to start: ' + (e.message || e); return; }
   if (!st.alive) { st.worker.terminate(); return; }
   st.status.textContent = 'Align address label in frame';
@@ -471,13 +494,16 @@ async function scanTick() {
     const { data: { text } } = await st.worker.recognize(c);
     if (!st.alive || st.locked) return;
     const allText = (text || '').replace(/\n/g, ' ').trim();
-    if (!allText) return;
+    if (!allText) { st.status.textContent = 'Scanning… fill the strip with the address label'; return; }
     if (!st.firstSeen) st.firstSeen = Date.now();
     const candidates = db.getStops(st.pid).filter((s) => !s.routeStop && s.anchor == null && s.address);
     let found = findMatches(allText, candidates);
     if (!found.length && Date.now() - st.firstSeen > 1250) found = findFuzzyMatches(allText, candidates);
     if (found.length) { st.locked = true; showMatches(found); }
-  } catch { /* skip this frame */ } finally { st.busy = false; }
+    // Show what the OCR is reading — proves it's working and helps aim; if this stays blank the
+    // camera/worker is the problem, if it reads text but never matches it's the address list.
+    else st.status.textContent = 'Reading: “' + allText.slice(0, 30) + '”';
+  } catch (e) { st.status.textContent = 'Scan error: ' + (e.message || e); } finally { st.busy = false; }
 }
 function showMatches(matches) {
   const st = scanState;
