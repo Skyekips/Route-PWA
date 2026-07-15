@@ -6,9 +6,11 @@ const K = {
   active: 'route_active',
   apiKey: 'route_apikey',
   cityHint: 'route_cityhint',
+  groupSize: 'route_groupsize',
   stops: (pid) => `route_stops_${pid}`,
   official: (pid) => `route_official_${pid}`,
   today: (pid) => `route_today_${pid}`,
+  polyline: (pid) => `route_polyline_${pid}`,
 };
 
 const read = (k, fallback) => {
@@ -25,6 +27,8 @@ export const getApiKey = () => read(K.apiKey, '') || '';
 export const setApiKey = (v) => write(K.apiKey, v || '');
 export const getCityHint = () => read(K.cityHint, '') || '';
 export const setCityHint = (v) => write(K.cityHint, v || '');
+export const getGroupSize = () => { const n = read(K.groupSize, 20); return Number.isFinite(+n) && +n >= 1 ? Math.min(200, +n) : 20; };
+export const setGroupSize = (v) => write(K.groupSize, Math.min(200, Math.max(1, v | 0)));
 
 // ── Profiles ────────────────────────────────────────────────────────────────
 export const getProfiles = () => read(K.profiles, []);
@@ -61,6 +65,7 @@ export const STOP_DEFAULTS = {
   address: '', stop: null, box: null, status: 'active', slotSize: null, loadOrder: null,
   hold: null, holdFrom: null, holdUntil: null,
   forwardTo: null, forwardFrom: null, forwardUntil: null,
+  checkName: null, checkUntil: null,   // verify-this-person-lives-here reminder (device-local)
   notes: null, lat: null, lon: null, placeId: null, geocodeQuality: null, geocodeType: null,
   anchor: null, routeStop: false, boxesServed: [], boxSlotIndex: null, navigateByPin: false,
 };
@@ -125,3 +130,18 @@ export function markCompleted(pid, stopId, done = true) {
   setToday(pid, t);
 }
 export function clearToday(pid) { setToday(pid, emptyToday()); }
+export function setAlertHandled(pid, key, handled = true) {
+  const t = getToday(pid);
+  const set = new Set(t.handledAlerts || []);
+  if (handled) set.add(key); else set.delete(key);
+  t.handledAlerts = [...set];
+  setToday(pid, t);
+}
+export function clearLockerFlag(pid, stopId) {
+  const t = getToday(pid);
+  if (t.packages[stopId]) { t.packages[stopId].clusterBox = false; setToday(pid, t); }
+}
+
+// ── Backbone road polyline (from road-optimize) → road-aware package insertion ──
+export const getRoadPolyline = (pid) => read(K.polyline(pid), null);   // [[lat,lon], ...] or null
+export const setRoadPolyline = (pid, line) => write(K.polyline(pid), line);
