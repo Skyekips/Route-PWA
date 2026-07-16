@@ -3,6 +3,7 @@
 // load progress, and a live "Reading: …" readout so aiming problems are visible.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { findMatches, findFuzzyMatches } from './fuzzy.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -40,13 +41,13 @@ export function openScanner(ctx) {
       <div class="scanmatch">
         <strong>${esc(s.address)}</strong>${s.box ? ` <small>Box ${esc(s.box)}</small>` : ''}
         <div class="btnrow">
-          <button class="btn primary" data-add="${s.id}">＋ Package</button>
-          <button class="btn outline" data-locker="${s.id}">📦 Locker</button>
+          <button class="btn primary" data-add="${s.id}">${icon('add')} Package</button>
+          <button class="btn outline" data-locker="${s.id}">${icon('box')} Locker</button>
           <button class="btn outline" data-cand="${s.id}">Candidate</button>
           <button class="btn outline" data-writeup="${s.id}">Write-up</button>
         </div>
       </div>`).join('') +
-      `<button class="btn outline" id="rescan">↻ Keep scanning</button>`;
+      `<button class="btn outline" id="rescan">${icon('refresh')} Keep scanning</button>`;
     matchBox.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
       db.addPackage(pid, +b.dataset.add); toast('Package added'); resume();
     }));
@@ -128,8 +129,10 @@ export function openScanner(ctx) {
       if (!all) { status.textContent = 'Scanning… fill the strip with the address label'; return; }
       if (!st.firstSeen) st.firstSeen = Date.now();
       const candidates = db.getStops(pid).filter((s) => !s.routeStop && !s.anchor && s.address);
-      let found = findMatches(all, candidates);
-      if (!found.length && Date.now() - st.firstSeen > 1250) found = findFuzzyMatches(all, candidates);
+      // findMatches returns {stop, score} wrappers — unwrap before showing.
+      let found = findMatches(all, candidates).map((m) => m.stop);
+      if (!found.length && Date.now() - st.firstSeen > 1250)
+        found = findFuzzyMatches(all, candidates).map((m) => m.stop);
       if (found.length) { st.locked = true; status.textContent = 'Match!'; showMatches(found); }
       else status.textContent = `Reading: “${all.slice(0, 30)}”`;
     } catch (e) { status.textContent = `Scan error: ${e?.message || e}`; }

@@ -2,6 +2,7 @@
 // Maps (no in-app nav on the PWA), Done/Undo, and the full checkable stop list.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { deliveryOrder, clusterAlerts, alertLabel, activeHold, activeForward } from './logic.js';
 
 let lastCompletedId = null;   // most recent Done → the ↩ Undo chip
@@ -63,7 +64,7 @@ export function renderDrive(root, ctx) {
   // ── Next-stop card ────────────────────────────────────────────────────────
   const next = root.querySelector('#next');
   if (!cur) {
-    next.innerHTML = `<div class="card center"><h2>✅ Route complete!</h2></div>`;
+    next.innerHTML = `<div class="card center"><h2>${icon('check', 28)} Route complete!</h2></div>`;
   } else {
     const pkg = t.packages[cur.id];
     const count = pkg?.packageCount || 0;
@@ -87,8 +88,8 @@ export function renderDrive(root, ctx) {
             </label>
           </li>`).join('')}</ul>` : ''}
         <div class="btnrow">
-          <a class="btn outline" href="${gmapsUrl(cur)}" target="_blank" rel="noopener">🧭 Navigate</a>
-          <button class="btn primary" id="done">✓ Done</button>
+          <a class="btn outline" href="${gmapsUrl(cur)}" target="_blank" rel="noopener">${icon('navigation')} Navigate</a>
+          <button class="btn primary" id="done">${icon('check')} Done</button>
         </div>
       </div>`;
 

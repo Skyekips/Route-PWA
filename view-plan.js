@@ -2,6 +2,7 @@
 // save as official, and review load-order conflicts. Mirrors the Android Plan screen.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { optimizeStraightLine, optimizeByRoad } from './geo.js';
 import { enforceLoadOrder, generateLoadOrder, loadOrderNum } from './logic.js';
 
@@ -13,7 +14,10 @@ let flags = [];            // load-order conflict strings from the last optimize
 
 export function renderPlan(root, ctx) {
   const { pid, toast, rerender } = ctx;
-  const stops = db.getStops(pid);
+  // Plan is the BASE-ROUTE editor: box/route stops + anchors only — the backbone you park at.
+  // Houses live in Stops; the day's packages live in Today. (Showing all 566 here read as
+  // "everything is in today's route", which it never was.)
+  const stops = db.getStops(pid).filter((s) => s.routeStop || s.anchor);
   const byId = new Map(stops.map((s) => [s.id, s]));
 
   // Working order: previous session on this tab → official → load-order sort.
@@ -32,12 +36,13 @@ export function renderPlan(root, ctx) {
   }
 
   root.innerHTML = `
-    <header class="bar"><h1>Plan</h1><span class="bar-note">${stops.length} stops</span></header>
+    <header class="bar"><h1>Plan</h1><span class="bar-note">${stops.length} route stops</span></header>
+    <p class="muted pad">Your backbone — the box/route stops you park at. Houses are in Stops; packages in Today.</p>
     <div class="btnrow pad wrap">
-      <button class="btn outline" id="opt-line">⚡ Optimize (straight)</button>
-      <button class="btn outline" id="opt-road">🛣️ Optimize by road</button>
-      <button class="btn outline" id="gen-load">🔢 Generate load order</button>
-      <button class="btn primary" id="save-official">💾 Save as official</button>
+      <button class="btn outline" id="opt-line">${icon('bolt')} Optimize (straight)</button>
+      <button class="btn outline" id="opt-road">${icon('route')} Optimize by road</button>
+      <button class="btn outline" id="gen-load">${icon('listNumbered')} Generate load order</button>
+      <button class="btn primary" id="save-official">${icon('save')} Save as official</button>
     </div>
     <p id="status" class="muted pad"></p>
     <div id="conflicts"></div>
@@ -85,7 +90,7 @@ export function renderPlan(root, ctx) {
   const conflicts = root.querySelector('#conflicts');
   conflicts.innerHTML = flags.length ? `
     <div class="card warn">
-      <strong>⚠ Load-order conflicts (${flags.length})</strong>
+      <strong>${icon('warning', 16)} Load-order conflicts (${flags.length})</strong>
       ${flags.slice(0, 4).map((f) => `<p>${esc(f)}</p>`).join('')}
       ${flags.length > 4 ? `<p>…and ${flags.length - 4} more</p>` : ''}
       <p class="muted">Either re-generate the load order to match this route, or fix the stop's data.</p>
@@ -97,7 +102,7 @@ export function renderPlan(root, ctx) {
     <li class="row">
       <span class="num">${i + 1}</span>
       <span class="rowtext"><strong>${esc(s.address)}</strong>
-        <small>${[s.anchor ? `⚑ ${esc(s.anchor)}` : null, s.routeStop ? 'box stop' : null,
+        <small>${[s.anchor ? esc(s.anchor).toUpperCase() : null, s.routeStop ? 'box stop' : null,
                   s.loadOrder ? `Load ${esc(s.loadOrder)}` : null].filter(Boolean).join(' · ')}</small></span>
       <button class="rowact" data-up="${i}">▲</button>
       <button class="rowact" data-down="${i}">▼</button>

@@ -1,6 +1,7 @@
 // Stops: the address book — search, add, edit every field the Android app has, geocode.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { geocode } from './geo.js';
 import { activeHold, activeForward, activeCheck } from './logic.js';
 
@@ -13,7 +14,7 @@ export function renderStops(root, ctx) {
 
   root.innerHTML = `
     <header class="bar"><h1>Stops</h1><span class="bar-note">${stops.length}</span>
-      <button class="chip" id="add">＋ Add</button>
+      <button class="chip" id="add">Add</button>
     </header>
     <div class="pad"><input id="q" class="input" placeholder="Search address / box…" autocomplete="off"/></div>
     <ul class="list" id="rows"></ul>`;
@@ -27,13 +28,13 @@ export function renderStops(root, ctx) {
       (s.address || '').toLowerCase().includes(term) || (s.box || '').toLowerCase().includes(term));
     rows.innerHTML = filtered.slice(0, 200).map((s) => {
       const flags = [
-        s.routeStop ? '🏤 box stop' : null,
-        s.anchor ? `⚑ ${esc(s.anchor)}` : null,
+        s.routeStop ? 'box stop' : null,
+        s.anchor ? esc(s.anchor).toUpperCase() : null,
         s.loadOrder ? `Load ${esc(s.loadOrder)}` : null,
         activeHold(s) ? 'Hold' : null,
         activeForward(s) ? 'Fwd' : null,
-        activeCheck(s) ? '🔍 Check' : null,
-        s.lat == null ? '⚠ no pin' : null,
+        activeCheck(s) ? 'Check' : null,
+        s.lat == null ? 'no pin' : null,
       ].filter(Boolean).join(' · ');
       return `
         <li class="row">
@@ -93,9 +94,9 @@ function openEditor(ctx, stop) {
         ${field('Check until', 'f-checkuntil', stop.checkUntil, 'YYYY-MM-DD')}
       </div>
       ${field('Notes', 'f-notes', stop.notes)}
-      <p class="muted">${stop.lat != null ? `📍 ${stop.lat.toFixed(5)}, ${stop.lon.toFixed(5)}` : '⚠ Not geocoded yet'}</p>
+      <p class="muted">${stop.lat != null ? `Pinned: ${stop.lat.toFixed(5)}, ${stop.lon.toFixed(5)}` : 'Not geocoded yet'}</p>
       <div class="btnrow">
-        <button class="btn outline" id="f-geocode">🌐 Geocode</button>
+        <button class="btn outline" id="f-geocode">${icon('globe')} Geocode</button>
         <button class="btn primary" id="f-save">Save</button>
       </div>
       <div class="btnrow">
@@ -141,7 +142,7 @@ function openEditor(ctx, stop) {
     try {
       const g = await geocode(v('f-address') || '');
       stop.lat = g.lat; stop.lon = g.lon; stop.placeId = g.placeId; stop.geocodeType = g.geocodeType;
-      msg.textContent = `📍 ${g.lat.toFixed(5)}, ${g.lon.toFixed(5)} — will be kept on Save.`;
+      msg.textContent = `Pinned: ${g.lat.toFixed(5)}, ${g.lon.toFixed(5)} — will be kept on Save.`;
     } catch (e) { msg.textContent = `Geocode failed: ${e.message}`; }
   });
 }

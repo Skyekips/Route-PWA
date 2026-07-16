@@ -1,6 +1,7 @@
 // Today: scan/add packages for the day, review them, slot them into the route, start driving.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { backboneWithInsertions, enforceLoadOrder } from './logic.js';
 import { optimizeByRoad } from './geo.js';
 import { findMatches, findFuzzyMatches } from './fuzzy.js';
@@ -12,7 +13,18 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
 export function renderToday(root, ctx) {
   const { pid, toast, rerender, navigate } = ctx;
   const stops = db.getStops(pid);
-  const t = db.getToday(pid);
+  let t = db.getToday(pid);
+
+  // Prune ghost package entries (keys that match no stop — e.g. the "NaN" rows an earlier
+  // search bug wrote). Keeps counts honest for anyone who hit that build.
+  const validIds = new Set(stops.map((s) => String(s.id)));
+  const ghosts = Object.keys(t.packages).filter((k) => !validIds.has(k));
+  if (ghosts.length) {
+    ghosts.forEach((k) => delete t.packages[k]);
+    db.setToday(pid, t);
+    t = db.getToday(pid);
+  }
+
   const entries = Object.entries(t.packages);
   const totals = entries.reduce((a, [, p]) => ({
     pkgs: a.pkgs + (p.packageCount || 0),
@@ -25,8 +37,8 @@ export function renderToday(root, ctx) {
       <span class="bar-note">${totals.pkgs} pkg · ${totals.writeUps} write-up · ${totals.cands} cand.</span>
     </header>
     <div class="btnrow pad">
-      <button class="btn primary" id="scan">📷 Scan labels</button>
-      <button class="btn outline" id="drive">🚚 Drive</button>
+      <button class="btn primary" id="scan">${icon('camera')} Scan labels</button>
+      <button class="btn outline" id="drive">${icon('truck')} Drive</button>
     </div>
     <div class="pad">
       <input id="search" class="input" placeholder="Add package by address…" autocomplete="off"/>
@@ -52,8 +64,9 @@ export function renderToday(root, ctx) {
     const q = search.value.trim();
     matches.innerHTML = '';
     if (q.length < 2) return;
-    let found = findMatches(q, stops);
-    if (!found.length) found = findFuzzyMatches(q, stops);
+    // findMatches returns {stop, score} wrappers — unwrap before rendering.
+    let found = findMatches(q, stops).map((m) => m.stop);
+    if (!found.length) found = findFuzzyMatches(q, stops).map((m) => m.stop);
     matches.innerHTML = found.slice(0, 6).map((s) => `
       <button class="matchrow" data-id="${s.id}">${esc(s.address)}${s.box ? ` <small>Box ${esc(s.box)}</small>` : ''}</button>`).join('');
     matches.querySelectorAll('.matchrow').forEach((b) =>
@@ -95,7 +108,7 @@ export function renderToday(root, ctx) {
     if (!s) return '';
     const bits = [
       p.packageCount ? `×${p.packageCount}` : null,
-      p.clusterBox ? '📦 locker' : null,
+      p.clusterBox ? 'locker' : null,
       p.lockerCandidateCount ? `cand. ×${p.lockerCandidateCount}` : null,
       p.writeUpCount ? `write-up ×${p.writeUpCount}` : null,
     ].filter(Boolean).join(' · ');

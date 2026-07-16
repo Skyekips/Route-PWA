@@ -1,9 +1,9 @@
 // Minimal offline cache for the app shell. CDN libs (Leaflet/SheetJS/Tesseract), map tiles, and
 // Google APIs are network-first and fall through — the shell itself always works offline.
-const CACHE = 'route-pwa2-v1';
+const CACHE = 'route-pwa2-v2';
 const SHELL = [
   './', './index.html', './styles.css',
-  './app.js', './logic.js', './db.js', './geo.js', './fuzzy.js', './xlsxio.js',
+  './app.js', './logic.js', './db.js', './geo.js', './fuzzy.js', './xlsxio.js', './icons.js',
   './view-drive.js', './view-today.js', './view-stops.js', './view-plan.js',
   './view-scan.js', './view-settings.js',
   './manifest.webmanifest', './icon-192.png', './icon-512.png',

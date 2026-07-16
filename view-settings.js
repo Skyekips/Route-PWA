@@ -2,6 +2,7 @@
 // Android app (same file format both ways).
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { importXlsx, exportXlsx } from './xlsxio.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -34,12 +35,12 @@ export function renderSettings(root, ctx) {
             <button class="rowact" data-delprofile="${esc(p.id)}">✕</button>
           </li>`).join('')}
       </ul>
-      <button class="btn outline" id="newprofile">＋ New profile</button>
+      <button class="btn outline" id="newprofile">${icon('add')} New profile</button>
 
       <h3>Data — moves between this and the Android app</h3>
       <div class="btnrow">
-        <button class="btn outline" id="export">⬇ Export .xlsx</button>
-        <label class="btn outline" for="importfile">⬆ Import .xlsx</label>
+        <button class="btn outline" id="export">${icon('download')} Export .xlsx</button>
+        <label class="btn outline" for="importfile">${icon('upload')} Import .xlsx</label>
         <input type="file" id="importfile" accept=".xlsx" hidden/>
       </div>
       <p id="datamsg" class="muted"></p>

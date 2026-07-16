@@ -3,6 +3,7 @@
 // Views live in view-*.js; each exports render(root, ctx) and reads db directly.
 
 import * as db from './db.js';
+import { icon } from './icons.js';
 import { renderDrive } from './view-drive.js';
 import { renderToday } from './view-today.js';
 import { renderStops } from './view-stops.js';
@@ -10,11 +11,11 @@ import { renderPlan } from './view-plan.js';
 import { renderSettings } from './view-settings.js';
 
 const TABS = [
-  ['drive', 'Drive', '🚚'],
-  ['today', 'Today', '📦'],
-  ['stops', 'Stops', '📍'],
-  ['plan', 'Plan', '🗺️'],
-  ['settings', 'Settings', '⚙️'],
+  ['drive', 'Drive', 'truck'],
+  ['today', 'Today', 'box'],
+  ['stops', 'Stops', 'place'],
+  ['plan', 'Plan', 'map'],
+  ['settings', 'Settings', 'gear'],
 ];
 
 const state = {
@@ -51,9 +52,9 @@ export function render() {
   root.innerHTML = `
     <main id="view"></main>
     <nav class="tabbar">
-      ${TABS.map(([id, label, icon]) => `
+      ${TABS.map(([id, label, ic]) => `
         <button class="tab ${state.tab === id ? 'active' : ''}" data-tab="${id}">
-          <span class="tab-icon">${icon}</span><span>${label}</span>
+          ${icon(ic, 22)}<span>${label}</span>
         </button>`).join('')}
     </nav>`;
 
