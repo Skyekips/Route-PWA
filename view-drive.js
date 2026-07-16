@@ -6,7 +6,8 @@ import { icon } from './icons.js';
 import { deliveryOrder, clusterAlerts, alertLabel, activeHold, activeForward } from './logic.js';
 
 let lastCompletedId = null;   // most recent Done → the ↩ Undo chip
-let map = null;               // Leaflet instance survives re-renders within the tab
+let map = null;               // current Leaflet instance
+let mapView = null;           // preserved center/zoom so re-renders don't yank the camera
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -42,6 +43,12 @@ export function renderDrive(root, ctx) {
   // ── Map (Leaflet, OSM tiles) ──────────────────────────────────────────────
   const mapEl = root.querySelector('#map');
   if (typeof L !== 'undefined') {
+    // Tear down the previous instance (leaks listeners otherwise) but keep its camera, so
+    // checking off a stop doesn't yank the view back out to the whole route.
+    if (map) {
+      try { mapView = { center: map.getCenter(), zoom: map.getZoom() }; map.remove(); } catch (e) { /* gone */ }
+      map = null;
+    }
     map = L.map(mapEl, { zoomControl: false });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       { attribution: '© OpenStreetMap' }).addTo(map);
@@ -55,7 +62,8 @@ export function renderDrive(root, ctx) {
       }).addTo(map);
       m.bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'pin-num' });
     });
-    if (pts.length) map.fitBounds(pts.map((s) => [s.lat, s.lon]), { padding: [30, 30], maxZoom: 16 });
+    if (mapView) map.setView(mapView.center, mapView.zoom);
+    else if (pts.length) map.fitBounds(pts.map((s) => [s.lat, s.lon]), { padding: [30, 30], maxZoom: 16 });
     else map.setView([61.541, -151.271], 10);
   } else {
     mapEl.textContent = 'Map library not loaded (offline?) — the list below still works.';

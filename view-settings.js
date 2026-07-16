@@ -70,7 +70,14 @@ export function renderSettings(root, ctx) {
 
   const msg = root.querySelector('#datamsg');
 
+  const xlsxReady = () => {
+    if (typeof XLSX !== 'undefined') return true;
+    msg.textContent = 'Spreadsheet library didn’t load — check your connection and reload.';
+    return false;
+  };
+
   root.querySelector('#export').addEventListener('click', () => {
+    if (!xlsxReady()) return;
     const blob = exportXlsx(db.getStops(pid), db.getOfficial(pid));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -82,13 +89,16 @@ export function renderSettings(root, ctx) {
   root.querySelector('#importfile').addEventListener('change', async (ev) => {
     const file = ev.target.files?.[0];
     if (!file) return;
+    if (!xlsxReady()) return;
     if (db.getStops(pid).length &&
         !confirm(`Importing replaces the ${db.getStops(pid).length} stops in this profile. Continue?`)) return;
     try {
       const { stops, official } = importXlsx(await file.arrayBuffer());
       db.setStops(pid, stops);
       if (official) db.setOfficial(pid, official); else db.clearOfficial(pid);
-      msg.textContent = `Imported ${stops.length} stops${official ? ' + official route' : ''}.`;
+      // Imported stops get fresh ids — old packages/checkmarks/order would point at ghosts.
+      db.clearToday(pid);
+      msg.textContent = `Imported ${stops.length} stops${official ? ' + official route' : ''}. Today's day state was reset.`;
       toast('Import complete');
     } catch (e) { msg.textContent = `Import failed: ${e.message}`; }
   });
