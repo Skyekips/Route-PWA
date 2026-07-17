@@ -2,7 +2,7 @@
 
 import * as db from './db.js';
 import { icon } from './icons.js';
-import { backboneWithInsertions, enforceLoadOrder } from './logic.js';
+import { backboneWithInsertions, enforceLoadOrder, deliveryOrder } from './logic.js';
 import { optimizeByRoad } from './geo.js';
 import { findMatches, findFuzzyMatches } from './fuzzy.js';
 import { openScanner } from './view-scan.js';
@@ -50,6 +50,7 @@ export function renderToday(root, ctx) {
     </div>
     <p id="status" class="muted pad"></p>
     <ul class="list" id="pkgs"></ul>
+    <div id="ordersec"></div>
     <div class="pad"><button class="btn danger outline" id="clear">End day — clear packages & checkmarks</button></div>`;
 
   const status = root.querySelector('#status');
@@ -127,4 +128,39 @@ export function renderToday(root, ctx) {
   root.querySelector('#clear').addEventListener('click', () => {
     if (confirm('Clear today’s packages, order, and checkmarks?')) { db.clearToday(pid); rerender(); }
   });
+
+  // ── Today's run order — the same sequence Drive uses, fine-tunable with the arrows ──
+  const dayOrder = deliveryOrder(stops, t.packages, db.getOfficial(pid), [], t.order, db.getRoadPolyline(pid));
+  const ordersec = root.querySelector('#ordersec');
+  if (dayOrder.length >= 2) {
+    ordersec.innerHTML = `
+      <h3 class="muted pad">Run order (${dayOrder.length}) — nudge with the arrows; Drive follows this</h3>
+      <ul class="list">${dayOrder.map((s, i) => {
+        const p = t.packages[s.id];
+        const bits = [s.box ? `Box ${esc(s.box)}` : null, p?.packageCount ? `×${p.packageCount}` : null,
+                      s.routeStop ? 'box stop' : null].filter(Boolean).join(' · ');
+        return `
+          <li class="row">
+            <span class="num">${i + 1}</span>
+            <span class="rowtext"><strong>${esc(s.address)}</strong>${bits ? `<small>${bits}</small>` : ''}</span>
+            <button class="rowact" data-oup="${i}">▲</button>
+            <button class="rowact" data-odn="${i}">▼</button>
+          </li>`;
+      }).join('')}</ul>`;
+    // First nudge materializes the computed order as today's explicit order, then swaps within it.
+    const nudge = (i, d) => {
+      const j = i + d;
+      if (j < 0 || j >= dayOrder.length) return;
+      const ids = dayOrder.map((s) => s.id);
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      db.setTodayOrder(pid, ids);
+      rerender();
+    };
+    ordersec.querySelectorAll('[data-oup]').forEach((b) =>
+      b.addEventListener('click', () => nudge(+b.dataset.oup, -1)));
+    ordersec.querySelectorAll('[data-odn]').forEach((b) =>
+      b.addEventListener('click', () => nudge(+b.dataset.odn, +1)));
+  } else {
+    ordersec.innerHTML = '';
+  }
 }
