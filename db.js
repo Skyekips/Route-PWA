@@ -22,6 +22,10 @@ const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 let idSeq = read('route_idseq', Date.now());
 export const newId = () => { idSeq += 1; write('route_idseq', idSeq); return idSeq; };
 
+/** Globally-unique stop identity (sync foundation) — survives xlsx round-trips across devices. */
+export const newUid = () =>
+  (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
 // ── Settings ────────────────────────────────────────────────────────────────
 export const getApiKey = () => read(K.apiKey, '') || '';
 export const setApiKey = (v) => write(K.apiKey, v || '');
@@ -62,6 +66,7 @@ export const getProfile = (id) => getProfiles().find((p) => p.id === id) || null
 
 // ── Stops ───────────────────────────────────────────────────────────────────
 export const STOP_DEFAULTS = {
+  uid: null, updatedAt: 0,   // sync identity + last-modified (stamped by upsertStop)
   address: '', stop: null, box: null, status: 'active', slotSize: null, loadOrder: null,
   hold: null, holdFrom: null, holdUntil: null,
   forwardTo: null, forwardFrom: null, forwardUntil: null,
@@ -74,6 +79,8 @@ export const getStops = (pid) => read(K.stops(pid), []);
 export const setStops = (pid, stops) => write(K.stops(pid), stops);
 export function upsertStop(pid, stop) {
   const stops = getStops(pid);
+  stop.uid = stop.uid || newUid();
+  stop.updatedAt = Date.now();
   if (stop.id) {
     const i = stops.findIndex((s) => s.id === stop.id);
     if (i >= 0) stops[i] = stop; else stops.push(stop);

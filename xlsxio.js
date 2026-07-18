@@ -1,13 +1,13 @@
 // Import/export the same .xlsx layout the Android app uses, so routes move Android <-> iPhone.
 // Relies on the SheetJS (XLSX) global loaded in index.html.
-import { STOP_DEFAULTS, newId } from './db.js';
+import { STOP_DEFAULTS, newId, newUid } from './db.js';
 
 const COLUMNS = [
   'address', 'stop', 'box', 'status', 'slot_size', 'load_order',
   'hold', 'hold_from', 'hold_until', 'forward_to', 'forward_from', 'forward_until',
   'notes', 'lat', 'lon', 'place_id', 'geocode_quality', 'geocode_type',
   'anchor', 'route_stop', 'boxes_served', 'box_slot_index', 'navigate_by_pin', 'official_index',
-  'check_name', 'check_until',
+  'check_name', 'check_until', 'uid', 'updated_at',
 ];
 
 const bool = (v) => String(v).trim().toLowerCase() === 'true';
@@ -42,6 +42,8 @@ export function importXlsx(arrayBuffer) {
       forwardUntil: strOrNull(r.forward_until),
       checkName: strOrNull(r.check_name),
       checkUntil: strOrNull(r.check_until),
+      uid: strOrNull(r.uid) || newUid(),
+      updatedAt: numOrNull(r.updated_at) || 0,
       notes: strOrNull(r.notes),
       lat: numOrNull(r.lat),
       lon: numOrNull(r.lon),
@@ -75,7 +77,7 @@ export function exportXlsx(stops, official) {
       s.notes || '', s.lat ?? '', s.lon ?? '', s.placeId || '', s.geocodeQuality || '', s.geocodeType || '',
       s.anchor || '', s.routeStop ? 'true' : 'false',
       (s.boxesServed || []).join(','), s.boxSlotIndex ?? '', s.navigateByPin ? 'true' : 'false',
-      officialIndex[s.id] ?? '', s.checkName || '', s.checkUntil || '',
+      officialIndex[s.id] ?? '', s.checkName || '', s.checkUntil || '', s.uid || '', s.updatedAt ?? 0,
     ]);
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
