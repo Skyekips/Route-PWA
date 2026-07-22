@@ -67,6 +67,7 @@ export const getProfile = (id) => getProfiles().find((p) => p.id === id) || null
 // ── Stops ───────────────────────────────────────────────────────────────────
 export const STOP_DEFAULTS = {
   uid: null, updatedAt: 0,   // sync identity + last-modified (stamped by upsertStop)
+  extraFlags: [],            // additional holds/forwards: "H|reason|from|until" / "F|names|from|until"
   address: '', stop: null, box: null, status: 'active', slotSize: null, loadOrder: null,
   hold: null, holdFrom: null, holdUntil: null,
   forwardTo: null, forwardFrom: null, forwardUntil: null,

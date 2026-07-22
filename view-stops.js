@@ -93,6 +93,8 @@ function openEditor(ctx, stop) {
         ${field('Check for (name)', 'f-check', stop.checkName)}
         ${field('Check until', 'f-checkuntil', stop.checkUntil, 'YYYY-MM-DD')}
       </div>
+      <label class="field"><span>Extra holds/forwards — one per line: H|reason|from|until or F|names|from|until (dates optional)</span>
+        <textarea class="input" id="f-extras" rows="2">${esc((stop.extraFlags || []).join('\n'))}</textarea></label>
       ${field('Notes', 'f-notes', stop.notes)}
       <p class="muted">${stop.lat != null ? `Pinned: ${stop.lat.toFixed(5)}, ${stop.lon.toFixed(5)}` : 'Not geocoded yet'}</p>
       <div class="btnrow">
@@ -121,6 +123,8 @@ function openEditor(ctx, stop) {
       hold: v('f-hold'), holdFrom: v('f-holdfrom'), holdUntil: v('f-holduntil'),
       forwardTo: v('f-fwd'), forwardFrom: v('f-fwdfrom'), forwardUntil: v('f-fwduntil'),
       checkName: v('f-check'), checkUntil: v('f-checkuntil'),
+      extraFlags: (overlay.querySelector('#f-extras').value || '')
+        .split('\n').map((l) => l.trim()).filter((l) => /^[HF]\|.+/.test(l)),
       notes: v('f-notes'),
     };
   }

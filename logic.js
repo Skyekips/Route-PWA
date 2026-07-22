@@ -33,6 +33,17 @@ export function clusterAlerts(cur, allStops, handledKeys, packages) {
     if (fwd) alerts.push({ stopId: s.id, key: `${s.id}-FORWARD`, type: 'FORWARD', address: s.address, detail: fwd, until: s.forwardUntil, box });
     const chk = activeCheck(s);
     if (chk) alerts.push({ stopId: s.id, key: `${s.id}-CHECK`, type: 'CHECK', address: s.address, detail: chk, until: s.checkUntil, box });
+    // Additional holds/forwards ("H|reason|from|until" / "F|names|from|until")
+    for (const raw of (s.extraFlags || [])) {
+      const p = String(raw).split('|');
+      if ((p[0] !== 'H' && p[0] !== 'F') || !p[1]) continue;
+      const from = p[2] || null, until = p[3] || null;
+      if (!within(todayStr(), from, until)) continue;
+      alerts.push({
+        stopId: s.id, key: `${s.id}-X${p[0]}-${p[1].toLowerCase()}`,
+        type: p[0] === 'H' ? 'HOLD' : 'FORWARD', address: s.address, detail: p[1], until, box,
+      });
+    }
     const pkg = packages?.[s.id];
     if (pkg?.clusterBox && pkg.packageCount > 0)
       alerts.push({ stopId: s.id, key: `${s.id}-LOCKER`, type: 'LOCKER', address: s.address, detail: box || '', until: null, box, count: pkg.packageCount });

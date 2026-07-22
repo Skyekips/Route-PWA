@@ -7,7 +7,7 @@ const COLUMNS = [
   'hold', 'hold_from', 'hold_until', 'forward_to', 'forward_from', 'forward_until',
   'notes', 'lat', 'lon', 'place_id', 'geocode_quality', 'geocode_type',
   'anchor', 'route_stop', 'boxes_served', 'box_slot_index', 'navigate_by_pin', 'official_index',
-  'check_name', 'check_until', 'uid', 'updated_at',
+  'check_name', 'check_until', 'uid', 'updated_at', 'extra_flags',
 ];
 
 const bool = (v) => String(v).trim().toLowerCase() === 'true';
@@ -44,6 +44,7 @@ export function importXlsx(arrayBuffer) {
       checkUntil: strOrNull(r.check_until),
       uid: strOrNull(r.uid) || newUid(),
       updatedAt: numOrNull(r.updated_at) || 0,
+      extraFlags: strOrNull(r.extra_flags) ? String(r.extra_flags).split(';;').filter(Boolean) : [],
       notes: strOrNull(r.notes),
       lat: numOrNull(r.lat),
       lon: numOrNull(r.lon),
@@ -77,7 +78,7 @@ export function exportXlsx(stops, official) {
       s.notes || '', s.lat ?? '', s.lon ?? '', s.placeId || '', s.geocodeQuality || '', s.geocodeType || '',
       s.anchor || '', s.routeStop ? 'true' : 'false',
       (s.boxesServed || []).join(','), s.boxSlotIndex ?? '', s.navigateByPin ? 'true' : 'false',
-      officialIndex[s.id] ?? '', s.checkName || '', s.checkUntil || '', s.uid || '', s.updatedAt ?? 0,
+      officialIndex[s.id] ?? '', s.checkName || '', s.checkUntil || '', s.uid || '', s.updatedAt ?? 0, (s.extraFlags || []).join(';;'),
     ]);
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
