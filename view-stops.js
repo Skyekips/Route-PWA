@@ -76,8 +76,9 @@ function openEditor(ctx, stop) {
       ${field('Boxes served (comma-sep)', 'f-served', (stop.boxesServed || []).join(','))}
       <div class="fieldrow">
         ${field('Anchor', 'f-anchor', stop.anchor, 'start / finish / blank')}
-        ${field('Status', 'f-status', stop.status, 'active')}
+        ${field('Status', 'f-status', stop.status, 'active / business / vacant…')}
       </div>
+      ${field('Business open days (Mon→Sun, 1=open, e.g. 1111100)', 'f-bizdays', stop.businessDays, 'only used when status is business')}
       <h3>Alerts</h3>
       ${field('Hold (reason)', 'f-hold', stop.hold)}
       <div class="fieldrow">
@@ -120,6 +121,7 @@ function openEditor(ctx, stop) {
       routeStop: overlay.querySelector('#f-routestop').checked,
       boxesServed: (v('f-served') || '').split(',').map((s) => s.trim()).filter(Boolean),
       anchor: v('f-anchor'), status: v('f-status') || 'active',
+      businessDays: (v('f-bizdays') || '').match(/^[01]{7}$/) ? v('f-bizdays') : null,
       hold: v('f-hold'), holdFrom: v('f-holdfrom'), holdUntil: v('f-holduntil'),
       forwardTo: v('f-fwd'), forwardFrom: v('f-fwdfrom'), forwardUntil: v('f-fwduntil'),
       checkName: v('f-check'), checkUntil: v('f-checkuntil'),

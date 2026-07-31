@@ -44,6 +44,16 @@ export function clusterAlerts(cur, allStops, handledKeys, packages) {
         type: p[0] === 'H' ? 'HOLD' : 'FORWARD', address: s.address, detail: p[1], until, box,
       });
     }
+    // Business closed today + a parcel scanned for it → warn before driving out there.
+    const pkgForClosed = packages?.[s.id];
+    if (s.status === 'business' && (pkgForClosed?.packageCount || 0) > 0 &&
+        s.businessDays && s.businessDays.length === 7) {
+      const dow = (new Date().getDay() + 6) % 7;   // JS Sun=0 → Mon=0..Sun=6
+      if (s.businessDays[dow] === '0') {
+        alerts.push({ stopId: s.id, key: `${s.id}-CLOSED-${todayStr()}`, type: 'CLOSED',
+          address: s.address, detail: 'closed today', until: null, box });
+      }
+    }
     const pkg = packages?.[s.id];
     if (pkg?.clusterBox && pkg.packageCount > 0)
       alerts.push({ stopId: s.id, key: `${s.id}-LOCKER`, type: 'LOCKER', address: s.address, detail: box || '', until: null, box, count: pkg.packageCount });
@@ -61,6 +71,7 @@ export function alertLabel(a) {
     case 'HOLD': return `Hold: ${a.detail} — ${a.address}`;
     case 'FORWARD': return `Fwd: ${a.detail} — ${a.address}`;
     case 'CHECK': return `Check for ${a.detail} — ${a.address}`;
+    case 'CLOSED': return `Closed today — hold parcel for ${a.address}`;
     case 'LOCKER': return `Locker${n}${boxNote} — ${a.address}`;
     default: return `Locker candidate${n}${boxNote} — ${a.address}`;
   }

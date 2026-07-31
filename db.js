@@ -68,6 +68,7 @@ export const getProfile = (id) => getProfiles().find((p) => p.id === id) || null
 export const STOP_DEFAULTS = {
   uid: null, updatedAt: 0,   // sync identity + last-modified (stamped by upsertStop)
   extraFlags: [],            // additional holds/forwards: "H|reason|from|until" / "F|names|from|until"
+  businessDays: null,        // business open-days mask Mon..Sun, e.g. "1111100" (null = every day)
   address: '', stop: null, box: null, status: 'active', slotSize: null, loadOrder: null,
   hold: null, holdFrom: null, holdUntil: null,
   forwardTo: null, forwardFrom: null, forwardUntil: null,

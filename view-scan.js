@@ -128,7 +128,7 @@ export function openScanner(ctx) {
       const all = (text || '').replace(/\n/g, ' ').trim();
       if (!all) { status.textContent = 'Scanning… fill the strip with the address label'; return; }
       if (!st.firstSeen) st.firstSeen = Date.now();
-      const candidates = db.getStops(pid).filter((s) => !s.routeStop && !s.anchor && s.address);
+      const candidates = db.getStops(pid).filter((s) => (!s.routeStop || s.status === 'business') && !s.anchor && s.address);
       // findMatches returns {stop, score} wrappers — unwrap before showing.
       let found = findMatches(all, candidates).map((m) => m.stop);
       if (!found.length && Date.now() - st.firstSeen > 1250)
