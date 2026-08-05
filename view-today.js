@@ -51,7 +51,8 @@ export function renderToday(root, ctx) {
     <p id="status" class="muted pad"></p>
     <ul class="list" id="pkgs"></ul>
     <div id="ordersec"></div>
-    <div class="pad"><button class="btn danger outline" id="clear">End day — clear packages & checkmarks</button></div>`;
+    <div class="pad"><button class="btn danger outline" id="clear">End day — archive & clear the day</button></div>
+    <div id="historysec" class="pad"></div>`;
 
   const status = root.querySelector('#status');
 
@@ -126,8 +127,32 @@ export function renderToday(root, ctx) {
     b.addEventListener('click', () => { db.removePackage(pid, +b.dataset.del); rerender(); }));
 
   root.querySelector('#clear').addEventListener('click', () => {
-    if (confirm('Clear today’s packages, order, and checkmarks?')) { db.clearToday(pid); rerender(); }
+    if (confirm('End the day? Today gets archived to Previous days, then cleared.')) {
+      db.clearToday(pid); toast('Day archived'); rerender();
+    }
   });
+
+  // ── Previous days (archived on End day, last 30) ──────────────────────────
+  const history = db.getHistory(pid);
+  root.querySelector('#historysec').innerHTML = history.length ? `
+    <h3 class="muted">Previous days</h3>
+    ${history.map((d) => {
+      const pkgs = d.entries.reduce((a, e) => a + (e.packageCount || 0), 0);
+      const doneN = d.entries.filter((e) => e.completed).length;
+      return `
+        <details class="card" style="margin:8px 0">
+          <summary><strong>${esc(d.date)}</strong>
+            <span class="muted"> — ${doneN} completed · ${pkgs} parcels</span></summary>
+          <ul class="list" style="margin-top:8px">
+            ${d.entries.map((e) => `
+              <li class="row"><span class="rowtext" style="padding:6px 4px">
+                <strong>${e.completed ? '✓ ' : ''}${esc(e.address)}</strong>
+                <small>${[e.box ? `Box ${esc(e.box)}` : null, e.packageCount ? `×${e.packageCount}` : null,
+                          e.writeUpCount ? `${e.writeUpCount} write-up` : null].filter(Boolean).join(' · ')}</small>
+              </span></li>`).join('')}
+          </ul>
+        </details>`;
+    }).join('')}` : '';
 
   // ── Today's run order — the same sequence Drive uses, fine-tunable with the arrows ──
   const dayOrder = deliveryOrder(stops, t.packages, db.getOfficial(pid), [], t.order, db.getRoadPolyline(pid));

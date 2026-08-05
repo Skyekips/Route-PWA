@@ -11,6 +11,7 @@ const K = {
   official: (pid) => `route_official_${pid}`,
   today: (pid) => `route_today_${pid}`,
   polyline: (pid) => `route_polyline_${pid}`,
+  history: (pid) => `route_history_${pid}`,
 };
 
 const read = (k, fallback) => {
@@ -60,6 +61,7 @@ export function deleteProfile(id) {
   localStorage.removeItem(K.stops(id));
   localStorage.removeItem(K.official(id));
   localStorage.removeItem(K.today(id));
+  localStorage.removeItem(K.history(id));
   if (getActiveProfileId() === id) setActiveProfileId(getProfiles()[0]?.id ?? null);
 }
 export const getProfile = (id) => getProfiles().find((p) => p.id === id) || null;
@@ -138,7 +140,35 @@ export function markCompleted(pid, stopId, done = true) {
   t.completed = [...set];
   setToday(pid, t);
 }
-export function clearToday(pid) { setToday(pid, emptyToday()); }
+/** Archived days: [{date: "YYYY-MM-DD", entries: [{address, box, packageCount, writeUpCount, completed}]}], newest first. */
+export const getHistory = (pid) => read(K.history(pid), []);
+
+/** End day: snapshot outcomes into history (addresses copied, survives edits), then wipe the day. */
+export function clearToday(pid) {
+  const t = getToday(pid);
+  const byId = new Map(getStops(pid).map((s) => [s.id, s]));
+  const done = new Set(t.completed);
+  const entries = [];
+  for (const [idStr, p] of Object.entries(t.packages)) {
+    const s = byId.get(+idStr);
+    if (!s) continue;
+    entries.push({ address: s.address, box: s.box, packageCount: p.packageCount || 0,
+      writeUpCount: p.writeUpCount || 0, completed: done.has(+idStr) });
+  }
+  for (const id of t.completed) {
+    if (t.packages[id]) continue;
+    const s = byId.get(id);
+    if (!s) continue;
+    entries.push({ address: s.address, box: s.box, packageCount: 0, writeUpCount: 0, completed: true });
+  }
+  if (entries.length) {
+    const date = new Date().toISOString().slice(0, 10);
+    const h = getHistory(pid).filter((d) => d.date !== date);
+    h.unshift({ date, entries });
+    write(K.history(pid), h.slice(0, 30));
+  }
+  setToday(pid, emptyToday());
+}
 export function setAlertHandled(pid, key, handled = true) {
   const t = getToday(pid);
   const set = new Set(t.handledAlerts || []);
