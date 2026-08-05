@@ -28,11 +28,11 @@ export function clusterAlerts(cur, allStops, handledKeys, packages) {
   for (const s of related) {
     const box = s.box || null;
     const hold = activeHold(s);
-    if (hold) alerts.push({ stopId: s.id, key: `${s.id}-HOLD`, type: 'HOLD', address: s.address, detail: hold, until: s.holdUntil, box });
+    if (hold) alerts.push({ stopId: s.id, key: `${s.id}-HOLD@${todayStr()}`, type: 'HOLD', address: s.address, detail: hold, until: s.holdUntil, box });
     const fwd = activeForward(s);
-    if (fwd) alerts.push({ stopId: s.id, key: `${s.id}-FORWARD`, type: 'FORWARD', address: s.address, detail: fwd, until: s.forwardUntil, box });
+    if (fwd) alerts.push({ stopId: s.id, key: `${s.id}-FORWARD@${todayStr()}`, type: 'FORWARD', address: s.address, detail: fwd, until: s.forwardUntil, box });
     const chk = activeCheck(s);
-    if (chk) alerts.push({ stopId: s.id, key: `${s.id}-CHECK`, type: 'CHECK', address: s.address, detail: chk, until: s.checkUntil, box });
+    if (chk) alerts.push({ stopId: s.id, key: `${s.id}-CHECK@${todayStr()}`, type: 'CHECK', address: s.address, detail: chk, until: s.checkUntil, box });
     // Additional holds/forwards ("H|reason|from|until" / "F|names|from|until")
     for (const raw of (s.extraFlags || [])) {
       const p = String(raw).split('|');
@@ -40,7 +40,7 @@ export function clusterAlerts(cur, allStops, handledKeys, packages) {
       const from = p[2] || null, until = p[3] || null;
       if (!within(todayStr(), from, until)) continue;
       alerts.push({
-        stopId: s.id, key: `${s.id}-X${p[0]}-${p[1].toLowerCase()}`,
+        stopId: s.id, key: `${s.id}-X${p[0]}-${p[1].toLowerCase()}@${todayStr()}`,
         type: p[0] === 'H' ? 'HOLD' : 'FORWARD', address: s.address, detail: p[1], until, box,
       });
     }
@@ -50,15 +50,15 @@ export function clusterAlerts(cur, allStops, handledKeys, packages) {
         s.businessDays && s.businessDays.length === 7) {
       const dow = (new Date().getDay() + 6) % 7;   // JS Sun=0 → Mon=0..Sun=6
       if (s.businessDays[dow] === '0') {
-        alerts.push({ stopId: s.id, key: `${s.id}-CLOSED-${todayStr()}`, type: 'CLOSED',
+        alerts.push({ stopId: s.id, key: `${s.id}-CLOSED@${todayStr()}`, type: 'CLOSED',
           address: s.address, detail: 'closed today', until: null, box });
       }
     }
     const pkg = packages?.[s.id];
     if (pkg?.clusterBox && pkg.packageCount > 0)
-      alerts.push({ stopId: s.id, key: `${s.id}-LOCKER`, type: 'LOCKER', address: s.address, detail: box || '', until: null, box, count: pkg.packageCount });
+      alerts.push({ stopId: s.id, key: `${s.id}-LOCKER@${todayStr()}`, type: 'LOCKER', address: s.address, detail: box || '', until: null, box, count: pkg.packageCount });
     if (pkg?.lockerCandidateCount > 0)
-      alerts.push({ stopId: s.id, key: `${s.id}-LOCKERCAND`, type: 'LOCKER_CANDIDATE', address: s.address, detail: box || '', until: null, box, count: pkg.lockerCandidateCount });
+      alerts.push({ stopId: s.id, key: `${s.id}-LOCKERCAND@${todayStr()}`, type: 'LOCKER_CANDIDATE', address: s.address, detail: box || '', until: null, box, count: pkg.lockerCandidateCount });
   }
   for (const a of alerts) a.handled = handled.has(a.key);
   return alerts.sort((a, b) => Number(a.handled) - Number(b.handled));   // unhandled first
