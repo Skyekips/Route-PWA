@@ -128,11 +128,16 @@ export function openScanner(ctx) {
       const all = (text || '').replace(/\n/g, ' ').trim();
       if (!all) { status.textContent = 'Scanning… fill the strip with the address label'; return; }
       if (!st.firstSeen) st.firstSeen = Date.now();
-      const candidates = db.getStops(pid).filter((s) => (!s.routeStop || s.status === 'business') && !s.anchor && s.address);
-      // findMatches returns {stop, score} wrappers — unwrap before showing.
-      let found = findMatches(all, candidates).map((m) => m.stop);
+      const real = db.getStops(pid).filter((s) => (!s.routeStop || s.status === 'business') && !s.anchor && s.address);
+      const realById = new Map(real.map((s) => [s.id, s]));
+      // Businesses match on NAME as well as address; matching runs on augmented copies,
+      // results remap to the real stop. findMatches returns {stop, score} — unwrap too.
+      const candidates = real.map((s) =>
+        s.businessName ? { ...s, address: `${s.businessName} ${s.address}` } : s);
+      let found = findMatches(all, candidates).map((m) => realById.get(m.stop.id));
       if (!found.length && Date.now() - st.firstSeen > 1250)
-        found = findFuzzyMatches(all, candidates).map((m) => m.stop);
+        found = findFuzzyMatches(all, candidates).map((m) => realById.get(m.stop.id));
+      found = found.filter(Boolean);
       if (found.length) { st.locked = true; status.textContent = 'Match!'; showMatches(found); }
       else status.textContent = `Reading: “${all.slice(0, 30)}”`;
     } catch (e) { status.textContent = `Scan error: ${e?.message || e}`; }
