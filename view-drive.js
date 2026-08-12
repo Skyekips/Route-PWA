@@ -17,7 +17,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
 function gmapsUrl(stop) {
   const usePin = stop.lat != null && (stop.navigateByPin || !stop.address);
   const dest = usePin ? `${stop.lat},${stop.lon}` : stop.address;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+  // place_id pins Maps to the exact geocoded place while still SHOWING the address as
+  // the destination name (skipped for hand-placed pins — those aren't a Google place).
+  const pid = !usePin && stop.placeId && stop.geocodeType !== 'MANUAL'
+    ? `&destination_place_id=${encodeURIComponent(stop.placeId)}` : '';
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}${pid}&travelmode=driving`;
 }
 
 export function renderDrive(root, ctx) {
