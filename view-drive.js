@@ -12,16 +12,12 @@ let mapView = null;           // preserved center/zoom so re-renders don't yank 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Pin-first when the stop prefers it (a saved pin is the exact spot); else the typed address,
-// falling back to the pin when there's no address at all.
+// Navigate by raw coordinates whenever the stop has a pin — the pin is ground truth out here,
+// and Google's address/place routing proved less accurate than the pin itself (a place-id
+// handoff was tried and rolled back: nicer label, worse target point).
 function gmapsUrl(stop) {
-  const usePin = stop.lat != null && (stop.navigateByPin || !stop.address);
-  const dest = usePin ? `${stop.lat},${stop.lon}` : stop.address;
-  // place_id pins Maps to the exact geocoded place while still SHOWING the address as
-  // the destination name (skipped for hand-placed pins — those aren't a Google place).
-  const pid = !usePin && stop.placeId && stop.geocodeType !== 'MANUAL'
-    ? `&destination_place_id=${encodeURIComponent(stop.placeId)}` : '';
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}${pid}&travelmode=driving`;
+  const dest = stop.lat != null ? `${stop.lat},${stop.lon}` : stop.address;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
 }
 
 export function renderDrive(root, ctx) {
